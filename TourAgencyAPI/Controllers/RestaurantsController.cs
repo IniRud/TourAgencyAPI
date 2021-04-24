@@ -23,9 +23,18 @@ namespace TourAgencyAPI.Controllers
 
         // GET: api/Restaurants
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Restaurant>>> GetRestaurants()
+        public async Task<ActionResult<IEnumerable<Restaurant>>> GetRestaurants([FromQuery] PaginationFilter filter)
         {
-            return await _context.Restaurants.ToListAsync();
+            var validPageFilter = new PaginationFilter(filter.PerPage, filter.CurrentPage);
+            //return await _context.Restaurants.Include(x => x.Reviews).ToListAsync();
+            var restaurantData = await _context.Restaurants.Include(x => x.Reviews)
+                .Skip((validPageFilter.CurrentPage - 1) * validPageFilter.PerPage)
+                .Take(validPageFilter.PerPage)
+                .ToListAsync();
+
+            var countTotal = await _context.Restaurants.CountAsync();
+
+            return Ok(new PaginatedResponse<List<Restaurant>>(countTotal, validPageFilter.PerPage, validPageFilter.CurrentPage, restaurantData));
         }
 
         // GET: api/Restaurants/5

@@ -23,9 +23,18 @@ namespace TourAgencyAPI.Controllers
 
         // GET: api/Hotels
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Hotel>>> GetHotels()
+        public async Task<ActionResult<IEnumerable<Hotel>>> GetHotels([FromQuery] PaginationFilter filter)
         {
-            return await _context.Hotels.ToListAsync();
+            var validPageFilter = new PaginationFilter(filter.PerPage, filter.CurrentPage);
+            //return await _context.Hotels.Include(x => x.Reviews).ToListAsync();
+            var hotelData = await _context.Hotels.Include(x => x.Reviews)
+                .Skip((validPageFilter.CurrentPage - 1) * validPageFilter.PerPage)
+                .Take(validPageFilter.PerPage)
+                .ToListAsync();
+
+            var countTotal = await _context.Hotels.CountAsync();
+
+            return Ok(new PaginatedResponse<List<Hotel>>(countTotal, validPageFilter.PerPage, validPageFilter.CurrentPage, hotelData));
         }
 
         // GET: api/Hotels/5
